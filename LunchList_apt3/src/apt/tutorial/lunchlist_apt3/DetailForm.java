@@ -1,9 +1,11 @@
 package apt.tutorial.lunchlist_apt3;
 
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -11,16 +13,10 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.database.sqlite.SQLiteOpenHelper;
-import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.Cursor;
-import android.content.ContentValues;
 
 public class DetailForm extends Activity {
 	EditText name=null;
@@ -30,6 +26,8 @@ public class DetailForm extends Activity {
 	RadioGroup types=null;
 	RestaurantHelper helper=null;
 	String restaurantId=null;
+	TextView location=null;
+	LocationManager locMgr=null;
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -40,8 +38,8 @@ public class DetailForm extends Activity {
 		notes=(EditText)findViewById(R.id.notes);
 		types=(RadioGroup)findViewById(R.id.types);
 		feed=(EditText)findViewById(R.id.feed);
-		Button save=(Button)findViewById(R.id.save);
-		save.setOnClickListener(onSave);
+		location=(TextView)findViewById(R.id.location);
+		locMgr=(LocationManager)getSystemService(LOCATION_SERVICE);
 		restaurantId=getIntent().getStringExtra(LunchList.ID_EXTRA);
 		if (restaurantId!=null) {
 			load();
@@ -61,6 +59,9 @@ public class DetailForm extends Activity {
 		}else {
 			types.check(R.id.delivery);
 		}
+		location.setText(String.valueOf(helper.getLatitude(c))
+				+", "
+				+String.valueOf(helper.getLongitude(c)));
 		c.close();
 	}
 	@Override
@@ -132,6 +133,10 @@ public class DetailForm extends Activity {
 				.show();
 			}
 			return(true);
+		}else if (item.getItemId()==R.id.location) {
+			locMgr.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+					0, 0, onLocationChange);
+					return(true);
 		}
 		return(super.onOptionsItemSelected(item));
 	}
@@ -141,4 +146,62 @@ public class DetailForm extends Activity {
 		NetworkInfo info=cm.getActiveNetworkInfo();
 		return(info!=null);
 	}
+	private void save() {
+		if (name.getText().toString().length()>0) {
+			String type=null;
+			switch (types.getCheckedRadioButtonId()) {
+				case R.id.sit_down:
+					type="sit_down";
+					break;
+				case R.id.take_out:
+					type="take_out";
+					break;
+				default:
+					type="delivery";
+					break;
+			}
+			if (restaurantId==null) {
+				helper.insert(name.getText().toString(),
+				address.getText().toString(), type,
+				notes.getText().toString(),
+				feed.getText().toString());
+			}else {
+				helper.update(restaurantId, name.getText().toString(),
+				address.getText().toString(), type,
+				notes.getText().toString(),
+				feed.getText().toString());
+			}
+		}
+	}
+	@Override
+	public void onPause() {
+		save();
+		locMgr.removeUpdates(onLocationChange);
+		super.onPause();
+	}
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		if (restaurantId==null) {
+			menu.findItem(R.id.location).setEnabled(false);
+		}
+		return(super.onPrepareOptionsMenu(menu));
+	}
+	LocationListener onLocationChange=new LocationListener() {
+		public void onLocationChanged(Location fix) {
+			helper.updateLocation(restaurantId, fix.getLatitude(),
+			fix.getLongitude());
+			location.setText(String.valueOf(fix.getLatitude())+", "+String.valueOf(fix.getLongitude()));
+			locMgr.removeUpdates(onLocationChange);
+			Toast.makeText(DetailForm.this, "Location saved", Toast.LENGTH_LONG).show();
+		}
+		public void onProviderDisabled(String provider) {
+			// required for interface, not used
+		}
+		public void onProviderEnabled(String provider) {
+			// required for interface, not used
+		}
+		public void onStatusChanged(String provider, int status, Bundle extras) {
+			// required for interface, not used
+		}
+	};
 }
