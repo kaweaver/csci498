@@ -6,6 +6,8 @@
     <uses-sdk
         android:minSdkVersion="8"
         android:targetSdkVersion="15" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCOUNT_MANAGER"/>
 
     <application
         android:icon="@drawable/ic_launcher"
@@ -22,6 +24,7 @@
         </activity>
         <activity android:name=".DetailForm"></activity>
         <activity android:name="EditPreferences"></activity>
+        <activity android:name="FeedActivity"></activity>
     </application>
 
 </manifest>
