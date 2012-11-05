@@ -21,6 +21,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.widget.TabHost;
 import android.widget.AdapterView;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 @SuppressWarnings("deprecation")
 public class LunchList extends ListActivity {
@@ -33,16 +35,17 @@ public class LunchList extends ListActivity {
 	  Restaurant current=null;
 	  RestaurantHelper helper=null;
 	  public final static String ID_EXTRA="apt.tutorial._ID";
+	  SharedPreferences prefs = null;
 	  
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+
 		helper=new RestaurantHelper(this);
-		model=helper.getAll();
-		startManagingCursor(model);
-		adapter=new RestaurantAdapter(model);
-		setListAdapter(adapter);
+		prefs=PreferenceManager.getDefaultSharedPreferences(this);
+		initList();
+		prefs.registerOnSharedPreferenceChangeListener(prefListener);
 	}
 	
 	@Override
@@ -99,6 +102,9 @@ public class LunchList extends ListActivity {
 		if (item.getItemId()==R.id.add) {
 			startActivity(new Intent(LunchList.this, DetailForm.class));
 			return(true);
+		}else if (item.getItemId()==R.id.prefs) {
+			startActivity(new Intent(this, EditPreferences.class));
+			return(true);
 		}
 		return(super.onOptionsItemSelected(item));
 	}	
@@ -107,5 +113,22 @@ public class LunchList extends ListActivity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		new MenuInflater(this).inflate(R.menu.option, menu);
 		return(super.onCreateOptionsMenu(menu));
+	}
+	private SharedPreferences.OnSharedPreferenceChangeListener prefListener=new SharedPreferences.OnSharedPreferenceChangeListener() {
+			public void onSharedPreferenceChanged(SharedPreferences sharedPrefs, String key) {
+			if (key.equals("sort_order")) {
+				initList();
+			}
+		}
+	};
+	private void initList() {
+		if (model!=null) {
+			stopManagingCursor(model);
+			model.close();
+		}
+		model=helper.getAll(prefs.getString("sort_order", "name"));
+		startManagingCursor(model);
+		adapter=new RestaurantAdapter(model);
+		setListAdapter(adapter);
 	}
 }
