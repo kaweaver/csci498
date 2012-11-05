@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -31,6 +33,7 @@ public class LunchList extends TabActivity {
 	  RadioGroup types=null;
 	  EditText notes=null;
 	  Restaurant current=null;
+	  int progress=0;
 	  
 	  @Override
 	  public boolean onOptionsItemSelected(MenuItem item) {
@@ -41,35 +44,62 @@ public class LunchList extends TabActivity {
 			  }
 			  Toast.makeText(this, message, Toast.LENGTH_LONG).show();
 			  return(true);
+		  }else if(item.getItemId() == R.id.run){
+			  setProgressBarVisibility(true);
+			  progress=0;
+			  new Thread(longTask).start();
 		  }
 		  return(super.onOptionsItemSelected(item));
 	  }
 	  
+	  private void doSomeLongWork(final int incr) {
+		  runOnUiThread(new Runnable(){
+			  public void run(){
+				  progress+=incr;
+				  setProgress(progress);
+			  }
+		  });
+		  SystemClock.sleep(250); // should be something more useful!
+	  }
+	  private Runnable longTask=new Runnable() {
+		  public void run() {
+			  for (int i=0;i<20;i++) {
+				  doSomeLongWork(500);
+			  }
+			  runOnUiThread(new Runnable(){
+				  public void run(){
+					  setProgressBarVisibility(false);
+				  }
+			  });
+		  }
+	  };
+	  
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-	    super.onCreate(savedInstanceState);
-	    setContentView(R.layout.activity_lunch_list);
-	    Button save=(Button)findViewById(R.id.save);
-	    
-	    save.setOnClickListener(onSave);
-	    
-	    ListView list=(ListView)findViewById(R.id.restaurants);
-	    adapter=new RestaurantAdapter();
-	    list.setAdapter(adapter);
-	    TabHost.TabSpec spec=getTabHost().newTabSpec("tag1");
-	    spec.setContent(R.id.restaurants);
-	    spec.setIndicator("List", getResources().getDrawable(R.drawable.list));
-	    getTabHost().addTab(spec);
-	    spec=getTabHost().newTabSpec("tag2");
-	    spec.setContent(R.id.details);
-	    spec.setIndicator("Details", getResources().getDrawable(R.drawable.restaurant));
-	    getTabHost().addTab(spec);
-	    getTabHost().setCurrentTab(0);
-	    list.setOnItemClickListener(onListClick);
-	    name=(EditText)findViewById(R.id.name);
-	    address=(EditText)findViewById(R.id.addr);
-	    types=(RadioGroup)findViewById(R.id.types);
-	    notes=(EditText)findViewById(R.id.notes);
+		super.onCreate(savedInstanceState);
+		requestWindowFeature(Window.FEATURE_PROGRESS);
+		setContentView(R.layout.activity_lunch_list);
+		
+		name=(EditText)findViewById(R.id.name);
+		address=(EditText)findViewById(R.id.addr);
+		notes=(EditText)findViewById(R.id.notes);
+		types=(RadioGroup)findViewById(R.id.types);
+		
+		Button save=(Button)findViewById(R.id.save);
+		save.setOnClickListener(onSave);
+		ListView list=(ListView)findViewById(R.id.restaurants);
+		adapter=new RestaurantAdapter();
+		list.setAdapter(adapter);
+		TabHost.TabSpec spec=getTabHost().newTabSpec("tag1");
+		spec.setContent(R.id.restaurants);
+		spec.setIndicator("List", getResources().getDrawable(R.drawable.list));
+		getTabHost().addTab(spec);
+		spec=getTabHost().newTabSpec("tag2");
+		spec.setContent(R.id.details);
+		spec.setIndicator("Details", getResources().getDrawable(R.drawable.restaurant));
+		getTabHost().addTab(spec);
+		getTabHost().setCurrentTab(0);
+		list.setOnItemClickListener(onListClick);
 	}
 	
 	@Override
