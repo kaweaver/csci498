@@ -1,10 +1,8 @@
 package apt.tutorial.lunchlist_apt3;
 
 import android.content.Context;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.database.Cursor;
 import android.content.ContentValues;
 
@@ -46,5 +44,21 @@ class RestaurantHelper extends SQLiteOpenHelper {
 	}
 	public String getNotes(Cursor c) {
 		return(c.getString(4));
+	
+	}
+	public Cursor getById(String id) {
+		String[] args={id};
+		return(getReadableDatabase().rawQuery("SELECT _id, name, address, type, notes FROM restaurants WHERE _ID=?", args));
+	}
+	public void update(String id, String name, String address,
+		String type, String notes) {
+		ContentValues cv=new ContentValues();
+		String[] args={id};
+		cv.put("name", name);
+		cv.put("address", address);
+		cv.put("type", type);
+		cv.put("notes", notes);
+		getWritableDatabase().update("restaurants", cv, "_ID=?",
+		args);
 	}
 }

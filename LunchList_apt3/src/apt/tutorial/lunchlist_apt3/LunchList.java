@@ -2,6 +2,9 @@ package apt.tutorial.lunchlist_apt3;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -11,14 +14,16 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.app.ListActivity;
 import android.app.TabActivity;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.widget.TabHost;
 import android.widget.AdapterView;
 
 @SuppressWarnings("deprecation")
-public class LunchList extends TabActivity {
+public class LunchList extends ListActivity {
 	  Cursor model=null;
 	  RestaurantAdapter adapter=null;
 	  EditText name=null;
@@ -27,36 +32,17 @@ public class LunchList extends TabActivity {
 	  EditText notes=null;
 	  Restaurant current=null;
 	  RestaurantHelper helper=null;
+	  public final static String ID_EXTRA="apt.tutorial._ID";
 	  
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_lunch_list);
-		
-		name=(EditText)findViewById(R.id.name);
-		address=(EditText)findViewById(R.id.addr);
-		notes=(EditText)findViewById(R.id.notes);
-		types=(RadioGroup)findViewById(R.id.types);
-		
-		Button save=(Button)findViewById(R.id.save);
-		save.setOnClickListener(onSave);
-		ListView list=(ListView)findViewById(R.id.restaurants);
-		list.setAdapter(adapter);
-		TabHost.TabSpec spec=getTabHost().newTabSpec("tag1");
-		spec.setContent(R.id.restaurants);
-		spec.setIndicator("List", getResources().getDrawable(R.drawable.list));
-		getTabHost().addTab(spec);
-		spec=getTabHost().newTabSpec("tag2");
-		spec.setContent(R.id.details);
-		spec.setIndicator("Details", getResources().getDrawable(R.drawable.restaurant));
-		getTabHost().addTab(spec);
-		getTabHost().setCurrentTab(0);
-		list.setOnItemClickListener(onListClick);
+		setContentView(R.layout.main);
 		helper=new RestaurantHelper(this);
 		model=helper.getAll();
 		startManagingCursor(model);
 		adapter=new RestaurantAdapter(model);
-		list.setAdapter(adapter);
+		setListAdapter(adapter);
 	}
 	
 	@Override
@@ -64,25 +50,6 @@ public class LunchList extends TabActivity {
 		super.onDestroy();
 		helper.close();
 	}
-	
-	private View.OnClickListener onSave=new View.OnClickListener() {
-		public void onClick(View v) {
-			String type=null;
-			switch (types.getCheckedRadioButtonId()) {
-				case R.id.sit_down:
-					type="sit_down";
-					break;
-				case R.id.take_out:
-					type="take_out";
-					break;
-				case R.id.delivery:
-					type="delivery";
-					break;
-			}
-			helper.insert(name.getText().toString(), address.getText().toString(), type, notes.getText().toString());
-			model.requery();
-		}
-	};
 	class RestaurantAdapter extends CursorAdapter {
 		RestaurantAdapter(Cursor c) {
 				super(LunchList.this, c);
@@ -122,20 +89,23 @@ public class LunchList extends TabActivity {
 			}
 		}
 	}
-	private AdapterView.OnItemClickListener onListClick=new AdapterView.OnItemClickListener() {
-		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-			model.moveToPosition(position);
-			name.setText(helper.getName(model));
-			address.setText(helper.getAddress(model));
-			notes.setText(helper.getNotes(model));
-			if (helper.getType(model).equals("sit_down")) {
-				types.check(R.id.sit_down);
-			}else if (helper.getType(model).equals("take_out")) {
-				types.check(R.id.take_out);
-			}else {
-				types.check(R.id.delivery);
-			}
-			getTabHost().setCurrentTab(1);
+	public void onListItemClick(ListView list, View view, int position, long id) {
+			Intent i=new Intent(LunchList.this, DetailForm.class);
+			i.putExtra(ID_EXTRA, String.valueOf(id));
+			startActivity(i);
+	}
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if (item.getItemId()==R.id.add) {
+			startActivity(new Intent(LunchList.this, DetailForm.class));
+			return(true);
 		}
-	};
+		return(super.onOptionsItemSelected(item));
+	}	
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		new MenuInflater(this).inflate(R.menu.option, menu);
+		return(super.onCreateOptionsMenu(menu));
+	}
 }
